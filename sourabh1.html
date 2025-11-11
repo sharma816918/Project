@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dataflow in DCN | TechBlog by Sourabh Sharma</title>
+  <style>
+    /* --- Global Styles --- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #c9d6ff, #e2e2e2);
+      color: #222;
+      overflow-x: hidden;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /* --- Navigation Bar --- */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    nav h1 {
+      font-size: 1.5rem;
+      color: #007bff;
+      letter-spacing: 1px;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    nav ul li a {
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    nav ul li a:hover {
+      color: #007bff;
+    }
+
+    /* --- Header Section --- */
+    header {
+      text-align: center;
+      padding: 5rem 1rem 3rem;
+      color: white;
+      background: linear-gradient(120deg, #007bff, #00d4ff);
+      clip-path: polygon(0 0, 100% 0, 100% 90%, 0 100%);
+      position: relative;
+    }
+
+    header h2 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      text-shadow: 1px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    /* --- Section Styling --- */
+    section {
+      max-width: 1000px;
+      margin: 2.5rem auto;
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 16px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      transition: transform 0.4s ease;
+    }
+
+    section:hover {
+      transform: translateY(-5px);
+    }
+
+    h3 {
+      color: #007bff;
+      border-left: 5px solid #007bff;
+      padding-left: 10px;
+      margin-bottom: 1rem;
+    }
+
+    p {
+      line-height: 1.8;
+      margin-bottom: 1rem;
+    }
+
+    /* --- Animation Containers --- */
+    .animation {
+      position: relative;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 12px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+
+    .device {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: rgba(0,123,255,0.8);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 600;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .arrow {
+      position: absolute;
+      width: 40px;
+      height: 8px;
+      border-radius: 4px;
+      background: #ffcc00;
+      transform-origin: center;
+    }
+
+    .arrow::after {
+      content: '';
+      position: absolute;
+      right: -10px;
+      top: -4px;
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      border-left: 12px solid #ffcc00;
+    }
+
+    /* --- Keyframe Animations --- */
+    @keyframes simplexFlow {
+      0% { left: 110px; opacity: 0.2; }
+      50% { opacity: 1; }
+      100% { left: calc(100% - 150px); opacity: 0.2; }
+    }
+
+    @keyframes halfFlow {
+      0% { left: 110px; background: #ffcc00; transform: rotate(0deg); }
+      50% { left: calc(100% - 150px); background: #ff5733; transform: rotate(180deg); }
+      100% { left: 110px; background: #ffcc00; transform: rotate(360deg); }
+    }
+
+    @keyframes fullForward {
+      0% { left: 110px; }
+      100% { left: calc(100% - 150px); }
+    }
+
+    @keyframes fullBackward {
+      0% { right: 110px; }
+      100% { right: calc(100% - 150px); }
+    }
+
+    /* --- Contact & Footer --- */
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      color: #333;
+      font-weight: 500;
+      margin-top: 3rem;
+    }
+
+    footer span {
+      color: #007bff;
+      font-weight: bold;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav ul {
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+      header h2 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav>
+    <h1>TechBlog</h1>
+    <ul>
+      <li><a href="#home">Home</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#blog">Blog</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <!-- Header -->
+  <header id="home">
+    <h2>Dataflow in Data Communication Networks</h2>
+    <p>Explore how data travels across devices — Simplex, Half Duplex, and Full Duplex explained visually.</p>
+  </header>
+
+  <!-- About Section -->
+  <section id="about">
+    <h3>About This Blog</h3>
+    <p>
+      This educational blog aims to simplify complex computer networking concepts for students and tech enthusiasts.
+      Here, we dive deep into how data communication networks (DCNs) manage the flow of information between connected devices.
+      You'll see detailed explanations, real-world examples, and interactive animations that help visualize each transmission mode clearly.
+    </p>
+  </section>
+
+  <!-- Blog Section -->
+  <section id="blog">
+    <h3>Understanding Dataflow in DCN</h3>
+    <p>
+      In any data communication system, *dataflow* defines the direction in which information travels between devices. 
+      Based on this directionality, there are three primary transmission modes:
+      <b>Simplex, Half Duplex, and Full Duplex.</b> 
+      Each mode has distinct characteristics, advantages, and real-world applications.
+    </p>
+
+    <!-- Simplex Mode -->
+    <h3>1. Simplex Mode</h3>
+    <p>
+      In Simplex mode, data travels only in one direction — from the sender to the receiver. 
+      The receiver cannot send any data back. Examples include a monitor receiving data from a CPU or a keyboard sending data to the CPU.
+    </p>
+    <div class="animation">
+      <div class="device">A</div>
+      <div class="device">B</div>
+      <div class="arrow" style="animation: simplexFlow 3s infinite;"></div>
+    </div>
+
+    <!-- Half Duplex Mode -->
+    <h3>2. Half Duplex Mode</h3>
+    <p>
+      In Half Duplex mode, data transmission can occur in both directions, but not at the same time. 
+      One device must wait until the other finishes sending data before responding. 
+      Classic examples include walkie-talkies and CB radios.
+    </p>
+    <div class="animation">
+      <div class="device">A</div>
+      <div class="device">B</div>
+      <div class="arrow" style="animation: halfFlow 4s infinite;"></div>
+    </div>
+
+    <!-- Full Duplex Mode -->
+    <h3>3. Full Duplex Mode</h3>
+    <p>
+      Full Duplex mode allows data to be sent and received simultaneously between devices. 
+      This bidirectional communication improves efficiency and speed, making it ideal for telecommunication and modern Ethernet networks.
+    </p>
+    <div class="animation">
+      <div class="device">A</div>
+      <div class="device">B</div>
+      <div class="arrow" style="background:#ff5733; animation: fullForward 2s infinite alternate;"></div>
+      <div class="arrow" style="background:#33cc33; animation: fullBackward 2s infinite alternate;"></div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section id="contact">
+    <h3>Contact Us</h3>
+    <p>
+      Have questions or suggestions? Feel free to reach out!
+      You can connect with <b>Sourabh Sharma</b> for collaborations or academic discussions related to networking and web development.
+    </p>
+    <p>📧 <b>Email:</b> sourabhsharma@example.com</p>
+    <p>🌐 <b>Website:</b> www.sourabhsharmatechblog.com</p>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    © 2025 <span>Sourabh Sharma</span>. All Rights Reserved.
+  </footer>
+
+</body>
+</html>
